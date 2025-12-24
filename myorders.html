@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Topup Bazar</title>
+    
+    <!-- Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root { --primary: #6200ea; --navy: #000033; --green: #2ecc71; --red: #e74c3c; --bg: #f4f7fa; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        
+        body { background-color: var(--bg); display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 100px; }
+        .flex-content { flex: 1; }
+
+        /* --- Header (Premium Style) --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 1000; height: 75px; }
+        .logo-img { height: 45px; cursor: pointer; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .bal-chip { background: var(--primary); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .user-pic { width: 42px; height: 42px; border-radius: 50%; border: 2.5px solid var(--primary); object-fit: cover; background: #eee; }
+
+        /* --- Order List Card Section --- */
+        .orders-container { background: #fff; margin: 15px 12px; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .container-header { padding: 12px 15px; border-bottom: 1px solid #ddd; font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 10px; font-size: 17px; }
+        
+        .order-box-area { padding: 15px; }
+        .order-item { margin-bottom: 20px; border-bottom: 1.5px solid #f0f0f0; padding-bottom: 15px; font-size: 14px; line-height: 1.9; color: #333; }
+        .order-item:last-child { border-bottom: none; }
+        
+        /* Label Styling (Bold and Exact as per screenshot) */
+        .order-item b { font-weight: 700; color: #000; width: 100px; display: inline-block; }
+        
+        /* Status Text Colors */
+        .st-pending { color: #ffa000; font-weight: 800; text-transform: lowercase; }
+        .st-complete { color: var(--green); font-weight: 800; text-transform: lowercase; }
+        .st-cancel { color: var(--red); font-weight: 800; text-transform: lowercase; }
+
+        /* No Login Message */
+        .login-alert { text-align: center; padding: 50px 20px; color: #777; }
+        .login-alert i { font-size: 40px; margin-bottom: 15px; opacity: 0.2; }
+
+        /* --- Stay Connected Footer (Complete Dora Style) --- */
+        .footer { background: var(--navy); color: #fff; padding: 40px 20px 100px; text-align: center; margin-top: 30px; }
+        .footer h4 { font-size: 19px; margin-bottom: 12px; font-weight: 700; letter-spacing: 1px; }
+        .footer p { font-size: 11.5px; color: #ccc; margin-bottom: 25px; line-height: 1.5; }
+        .social-icons { display: flex; justify-content: center; gap: 15px; margin-bottom: 35px; }
+        .social-icons a { width: 45px; height: 45px; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 20px; transition: 0.3s; }
+        
+        .sup-card { background: rgba(255,255,255,0.06); border: 1.2px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 18px; display: flex; align-items: center; gap: 15px; max-width: 320px; margin: 0 auto; text-align: left; cursor: pointer; }
+        .sup-card i { font-size: 30px; color: #fff; }
+        .sup-card b { font-size: 15px; display: block; color: #fff; }
+        .sup-card span { font-size: 12px; color: #aaa; }
+
+        /* --- Help Pill --- */
+        .help-wrap { position: fixed; bottom: 85px; right: 15px; display: flex; align-items: center; gap: 8px; z-index: 1000; }
+        .help-label { background: var(--red); color: white; padding: 7px 15px; border-radius: 25px; font-size: 12px; font-weight: bold; border: 1.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .help-btn { background: var(--red); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; border: 2.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; }
+
+        /* --- Bottom Navigation (5 Premium Buttons) --- */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 12px 0 10px; border-top: 1px solid #f0f0f0; z-index: 2000; box-shadow: 0 -5px 15px rgba(0,0,0,0.03); }
+        .nav-link { text-align: center; text-decoration: none; color: #8e8e93; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link i { font-size: 22px; }
+        .nav-link span { font-size: 10px; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <div class="flex-content">
+        <!-- Header -->
+        <header class="header">
+            <img src="https://i.ibb.co/993tz844/1743098669.png" class="logo-img" onclick="location.href='home.html'">
+            <div class="header-right">
+                <div class="bal-chip">৳ <span id="topBal">0.00</span></div>
+                <!-- Gmail Profile Photo -->
+                <img id="userImg" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="user-pic" onclick="location.href='account.html'">
+            </div>
+        </header>
+
+        <!-- Order Section Card -->
+        <div class="orders-main-card" id="mainCard">
+            <div class="orders-container">
+                <div class="container-header">
+                    <i class="fas fa-list-ul"></i> My Orders
+                </div>
+                
+                <div id="ordersList" class="order-box-area">
+                    <!-- অর্ডারের ডাটা এখানে আসবে -->
+                    <p style="text-align: center; color: #999; padding: 20px;">অর্ডার হিস্টোরি লোড হচ্ছে...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stay Connected Footer (Exact Dora Style) -->
+    <footer class="footer">
+        <h4>STAY CONNECTED</h4>
+        <p>কোন সমস্যায় পড়লে টেলিগ্রাম এ যোগাযোগ করবেন। তাহলে দ্রুত সমাধান পেয়ে যাবেন।</p>
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+            <a href="#"><i class="far fa-envelope"></i></a>
+        </div>
+        
+        <div class="sup-card" onclick="window.location.href='https://t.me/your_telegram'">
+            <i class="fab fa-telegram-plane"></i>
+            <div>
+                <b>Help line [9AM-12PM]</b>
+                <span>টেলিগ্রামে সাপোর্ট পান</span>
+            </div>
+        </div>
+        <p style="margin-top: 35px; font-size: 10px; color: #777;">© topupbazer 2025 | All Rights Reserved</p>
+    </footer>
+
+    <!-- Help Pill & FAB -->
+    <div class="help-wrap">
+        <div class="help-pill">সাহায্য লাগবে ?</div>
+        <a href="tel:01700000000" class="help-btn"><i class="fas fa-phone"></i></a>
+    </div>
+
+    <!-- Bottom Navigation (5 Premium Buttons) -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-link"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="addmoney.html" class="nav-link"><i class="fas fa-wallet"></i><span>Add Money</span></a>
+        <a href="orders.html" class="nav-link active"><i class="fas fa-history"></i><span>My Orders</span></a>
+        <a href="codes.html" class="nav-link"><i class="fas fa-qrcode"></i><span>My Codes</span></a>
+        <a href="account.html" class="nav-link"><i class="fas fa-user-circle"></i><span>My Account</span></a>
+    </nav>
+
+    <script>
+        // --- Firebase Config ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A", 
+            authDomain: "topup-bazer-53c10.firebaseapp.com", 
+            databaseURL: "https://topup-bazer-53c10-default-rtdb.firebaseio.com", 
+            projectId: "topup-bazer-53c10", 
+            storageBucket: "topup-bazer-53c10.firebasestorage.app", 
+            messagingSenderId: "451264656346", 
+            appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // ১. জিমেইল প্রোফাইল ও ব্যালেন্স লোড
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // জিমেইল থেকে অরিজিনাল ছবি লোড
+                if(user.photoURL) document.getElementById("userImg").src = user.photoURL;
+                
+                // রিয়েল টাইম ব্যালেন্স
+                db.ref("users/" + user.uid + "/balance").on("value", s => {
+                    document.getElementById("topBal").innerText = (s.val() || 0).toFixed(2);
+                });
+
+                // ইউজারের অর্ডার ডাটাবেস থেকে নিয়ে আসা
+                loadUserOrders(user.uid);
+            } else {
+                // লগইন না থাকলে এই মেসেজ দেখাবে
+                document.getElementById("ordersList").innerHTML = `
+                    <div class="login-alert">
+                        <i class="fas fa-user-lock"></i><br>
+                        অর্ডার হিস্টোরি দেখতে দয়া করে লগইন করুন।
+                    </div>`;
+            }
+        });
+
+        // ২. ডাটাবেস থেকে অর্ডার নিয়ে আসার ফাংশন
+        function loadUserOrders(uid) {
+            db.ref("orders").orderByChild("uid").equalTo(uid).on("value", s => {
+                const area = document.getElementById("ordersList");
+                area.innerHTML = "";
+                
+                let orderArr = [];
+                s.forEach(child => {
+                    let d = child.val();
+                    d.id = child.key; // ইউনিক আইডি
+                    orderArr.push(d);
+                });
+
+                if(orderArr.length === 0) {
+                    area.innerHTML = `<div style="text-align:center; color:#999; padding:20px;">আপনার কোনো অর্ডার নেই।</div>`;
+                    return;
+                }
+
+                // নতুন অর্ডার আগে দেখানোর জন্য উল্টানো হয়েছে
+                orderArr.reverse().forEach(order => {
+                    let stClass = "st-pending";
+                    let stText = order.status || "pending";
+
+                    // স্ট্যাটাস অনুযায়ী ডিজাইন ঠিক করা
+                    if(stText.toLowerCase().includes("complete")) {
+                        stClass = "st-complete";
+                        stText = `complete( ${order.updateTime || order.time} )`;
+                    } else if(stText.toLowerCase().includes("cancel")) {
+                        stClass = "st-cancel";
+                        stText = `cancel( ${order.cancelReason || ''} )`;
+                    }
+
+                    area.innerHTML += `
+                        <div class="order-item">
+                            <b>Serial NO:</b> ${order.id.slice(-6).toUpperCase()}<br>
+                            <b>Date:</b> ${order.time}<br>
+                            <b>Package:</b> ${order.packageName}<br>
+                            <b>Player ID:</b> ${order.playerInfo}<br>
+                            <b>Price:</b> ৳ ${parseFloat(order.price).toFixed(2)}<br>
+                            <b>Status:</b> <span class="${stClass}">${stText}</span>
+                        </div>
+                    `;
+                });
+            });
+        }
+    </script>
+</body>
+</html>

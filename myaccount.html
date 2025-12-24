@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Topup Bazar</title>
+    
+    <!-- Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root { --primary: #6200ea; --navy: #000033; --green: #2ecc71; --red: #e74c3c; --bg: #f4f7fa; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        
+        body { background-color: var(--bg); padding-bottom: 120px; }
+
+        /* --- Header (Dora Topup Exact Style) --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #fff; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 1000; height: 70px; }
+        .logo-img { height: 42px; cursor: pointer; }
+        
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .bal-btn { background: var(--primary); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px; text-decoration: none; box-shadow: 0 4px 10px rgba(98,0,234,0.2); }
+        
+        /* ওপরের ডান পাশের জিমেইল ফটো */
+        .small-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--primary); background: #eee; }
+
+        /* --- Profile Hero Area --- */
+        .profile-hero { text-align: center; padding: 30px 20px 20px; background: transparent; }
+        
+        /* মাঝখানের বড় জিমেইল ফটো */
+        .large-avatar { width: 100px; height: 100px; border-radius: 50%; border: 4px solid #b388ff; padding: 3px; background: #fff; object-fit: cover; margin-bottom: 10px; box-shadow: 0 0 20px rgba(98, 0, 234, 0.2); }
+        
+        .user-hi { color: var(--primary); font-size: 18px; font-weight: 700; margin-bottom: 5px; }
+        .avail-bal { font-size: 15px; font-weight: 600; color: #333; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .refresh-btn { color: #888; cursor: pointer; font-size: 14px; }
+
+        /* --- Stats Grid (Support Pin, Orders, etc) --- */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 15px; margin-bottom: 20px; }
+        .stat-box { background: #fff; border: 1.5px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .stat-box .val { color: var(--primary); font-size: 18px; font-weight: 900; display: block; }
+        .stat-box .label { font-size: 13px; color: var(--navy); font-weight: 700; }
+
+        /* --- Section Header --- */
+        .sec-header { background: #fff; padding: 12px 15px; border: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-weight: 800; color: #000; margin-top: 10px; }
+
+        /* --- Account Info Box --- */
+        .info-card-container { background: #fff; padding: 25px 15px; border: 1px solid #eee; margin-bottom: 20px; }
+        .info-flex { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        
+        .bal-display-box { background: var(--primary); color: #fff; width: 100%; max-width: 220px; padding: 12px; border-radius: 8px; text-align: center; font-weight: 900; font-size: 18px; box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3); }
+        .bal-label-large { font-size: 18px; font-weight: 800; color: var(--navy); margin-top: 5px; }
+        
+        .verify-box { text-align: center; margin-top: 15px; }
+        .verify-box i { color: #2196f3; font-size: 50px; margin-bottom: 10px; }
+        .verify-text { font-size: 20px; font-weight: 800; color: #000; }
+
+        /* --- User Data --- */
+        .user-info-text { background: #fff; padding: 20px 15px; border: 1px solid #eee; font-size: 14px; line-height: 2.2; }
+        .user-info-text b { color: #000; width: 65px; display: inline-block; font-weight: 700; }
+
+        /* --- Stay Connected Footer --- */
+        .footer { background: var(--navy); color: #fff; padding: 35px 20px 110px; text-align: center; margin-top: 30px; }
+        .footer h4 { font-size: 18px; margin-bottom: 15px; font-weight: 700; }
+        .social-icons { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .social-icons a { width: 42px; height: 42px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 18px; }
+
+        /* --- Help Pill --- */
+        .help-fab { position: fixed; bottom: 85px; right: 15px; display: flex; align-items: center; gap: 8px; z-index: 1000; }
+        .help-pill { background: var(--red); color: white; padding: 7px 15px; border-radius: 25px; font-size: 12px; font-weight: bold; border: 1.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .help-circle { background: var(--red); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; border: 2.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; }
+
+        /* --- Bottom Nav --- */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #f0f0f0; z-index: 2000; }
+        .nav-link { text-align: center; text-decoration: none; color: #8e8e93; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link i { font-size: 22px; }
+        .nav-link span { font-size: 10px; font-weight: 700; }
+
+        .logout-btn { color: var(--red); font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <img src="https://i.ibb.co/993tz844/1743098669.png" class="logo-img" onclick="location.href='home.html'">
+        <div class="header-right">
+            <a href="addmoney.html" class="bal-btn"><i class="fas fa-wallet"></i> <span id="hBal">0</span>৳</a>
+            <!-- ওপরের ডান পাশে Gmail থেকে ছবি আসবে এখানে -->
+            <img id="hAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="small-avatar">
+        </div>
+    </header>
+
+    <!-- Profile Hero -->
+    <div class="profile-hero">
+        <!-- মাঝখানের বড় Gmail ছবি আসবে এখানে -->
+        <img id="mainAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="large-avatar">
+        <div class="user-hi" id="uHi">লোড হচ্ছে...</div>
+        <div class="avail-bal">
+            Available Balance : <span id="uBal">0.00</span> Tk 
+            <i class="fas fa-sync-alt refresh-btn" onclick="location.reload()"></i>
+        </div>
+        <div class="logout-btn" onclick="auth.signOut().then(()=>location.href='login.html')">Logout Account</div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-box">
+            <span class="val" id="sPin">...</span>
+            <span class="label">Support Pin</span>
+        </div>
+        <div class="stat-box">
+            <span class="val" id="wSpent">0 ৳</span>
+            <span class="label">Weeklly Spent</span>
+        </div>
+        <div class="stat-box">
+            <span class="val" id="tSpent">0 ৳</span>
+            <span class="label">Total Spent</span>
+        </div>
+        <div class="stat-box">
+            <span class="val" id="tOrder">0</span>
+            <span class="label">Total Order</span>
+        </div>
+    </div>
+
+    <!-- Account Info -->
+    <div class="sec-header">
+        <i class="fas fa-folder-open"></i> Account Information
+    </div>
+    <div class="info-card-container">
+        <div class="info-flex">
+            <div class="bal-display-box" id="innerBal">0.00৳</div>
+            <div class="bal-label-large">Available Balance</div>
+            
+            <div class="verify-box">
+                <i class="fas fa-certificate"></i>
+                <div class="verify-text">Account Verified!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Information -->
+    <div class="sec-header">
+        <i class="fas fa-info-circle"></i> User Information
+    </div>
+    <div class="user-info-text">
+        <div><b>email :</b> <span id="uEmail">...</span></div>
+        <div><b>Phone :</b> <span id="uPhone">...</span></div>
+    </div>
+
+    <!-- Stay Connected Footer -->
+    <footer class="footer">
+        <h4>STAY CONNECTED</h4>
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+            <a href="#"><i class="far fa-envelope"></i></a>
+        </div>
+        <div style="font-size: 10px; color: #555;">© topupbazer 2025 | All Rights Reserved</div>
+    </footer>
+
+    <!-- Help Button -->
+    <div class="help-fab">
+        <div class="help-pill">সাহায্য লাগবে ?</div>
+        <a href="tel:01700000000" class="help-circle"><i class="fas fa-phone"></i></a>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-link"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="addmoney.html" class="nav-link"><i class="fas fa-wallet"></i><span>Add Money</span></a>
+        <a href="orders.html" class="nav-link"><i class="fas fa-history"></i><span>My Orders</span></a>
+        <a href="codes.html" class="nav-link"><i class="fas fa-qrcode"></i><span>My Codes</span></a>
+        <a href="account.html" class="nav-link active"><i class="fas fa-user-circle"></i><span>My Account</span></a>
+    </nav>
+
+    <script>
+        // --- Firebase Config ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A", 
+            authDomain: "topup-bazer-53c10.firebaseapp.com", 
+            databaseURL: "https://topup-bazer-53c10-default-rtdb.firebaseio.com", 
+            projectId: "topup-bazer-53c10", 
+            storageBucket: "topup-bazer-53c10.firebasestorage.app", 
+            messagingSenderId: "451264656346", 
+            appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Gmail থেকে অটোমেটিক ছবি এবং নাম নেওয়া
+                const gmailPhoto = user.photoURL || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+                document.getElementById("hAvatar").src = gmailPhoto;
+                document.getElementById("mainAvatar").src = gmailPhoto;
+                document.getElementById("uHi").innerText = "Hi, " + (user.displayName || "User");
+                document.getElementById("uEmail").innerText = user.email;
+
+                // Support Pin (UID এর শেষের অংশ)
+                document.getElementById("sPin").innerText = user.uid.slice(-6).toUpperCase();
+
+                // Balance রিয়েল টাইম ডাটাবেস থেকে
+                db.ref("users/" + user.uid).on("value", s => {
+                    const data = s.val();
+                    const bal = (data && data.balance) ? parseFloat(data.balance) : 0;
+                    document.getElementById("hBal").innerText = bal.toFixed(0);
+                    document.getElementById("uBal").innerText = bal.toFixed(2);
+                    document.getElementById("innerBal").innerText = bal.toFixed(2) + "৳";
+                    if(data && data.phone) document.getElementById("uPhone").innerText = data.phone;
+                });
+
+                // Order Count এবং Spent calculation
+                db.ref("orders").orderByChild("uid").equalTo(user.uid).on("value", s => {
+                    let count = 0;
+                    let spent = 0;
+                    s.forEach(child => {
+                        count++;
+                        const o = child.val();
+                        if(o.status === "Completed") {
+                            spent += parseFloat(o.price || 0);
+                        }
+                    });
+                    document.getElementById("tOrder").innerText = count;
+                    document.getElementById("tSpent").innerText = spent + " ৳";
+                });
+
+            } else {
+                // লগইন না থাকলে মেসেজ
+                document.getElementById("uHi").innerText = "দয়া করে লগইন করুন";
+            }
+        });
+    </script>
+</body>
+</html>
