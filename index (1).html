@@ -153,7 +153,6 @@
         }
         .nav-item i { font-size: 20px; color: #555; }
         
-        /* Active State logic (Optional) */
         .nav-item:hover i { color: #6200ea; }
 
         /* Floating Call Button (Red - Like Photo) */
@@ -169,6 +168,7 @@
         #status-msg { margin-bottom: 15px; padding: 10px; border-radius: 5px; font-size: 14px; font-weight: bold; display: none; text-align: center;}
         .status-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .status-error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        .status-loading { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
 
     </style>
 </head>
@@ -190,9 +190,10 @@
         <div class="login-card">
             <h2 class="login-title">Login</h2>
 
+            <!-- Status Message Box -->
             <div id="status-msg"></div>
 
-            <!-- Google Button (SVG Icon) -->
+            <!-- Google Button (UPDATED to work with PWA) -->
             <button class="google-btn" id="googleLoginBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
                     <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
@@ -251,31 +252,28 @@
         </div>
     </footer>
 
-    <!-- 4. Bottom Navigation (Exactly like screenshot) -->
+    <!-- 4. Bottom Navigation -->
     <div class="bottom-nav">
-        <!-- Home -->
+        <!-- Home (Login page e tai href # rakhlam) -->
         <a href="#" class="nav-item">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
-        <!-- Tutorial (Youtube Icon) -->
         <a href="#" class="nav-item">
             <i class="fab fa-youtube"></i>
             <span>Tutorial</span>
         </a>
-        <!-- TopUp (Compass Icon like photo) -->
         <a href="#" class="nav-item">
             <i class="far fa-compass"></i>
             <span>TopUp</span>
         </a>
-        <!-- Contact Us (Grid Icon like photo) -->
         <a href="#" class="nav-item">
             <i class="fas fa-th-large"></i>
             <span>Contact Us</span>
         </a>
     </div>
 
-    <!-- Floating Call Button (Red - Bottom Right) -->
+    <!-- Floating Call Button -->
     <div class="float-btn"><i class="fas fa-phone"></i></div>
 
     <!-- Firebase Integration -->
@@ -283,6 +281,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <script>
+        // --- আপনার Firebase Config ---
         const firebaseConfig = {
             apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A",
             authDomain: "topup-bazer-53c10.firebaseapp.com",
@@ -292,37 +291,42 @@
             appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
         };
 
+        // Firebase Start
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const provider = new firebase.auth.GoogleAuthProvider();
 
         const statusMsg = document.getElementById('status-msg');
 
+        // স্ট্যাটাস মেসেজ দেখানোর ফাংশন
         function showStatus(msg, type) {
             statusMsg.style.display = 'block';
-            statusMsg.className = type === 'success' ? 'status-success' : 'status-error';
+            if(type === 'success') statusMsg.className = 'status-success';
+            else if(type === 'error') statusMsg.className = 'status-error';
+            else statusMsg.className = 'status-loading';
             statusMsg.innerText = msg;
         }
 
-        // 1. অটোমেটিক চেক (লগিন থাকলে হোম পেজে পাঠাবে)
+        // ১. অটোমেটিক চেক: ইউজার লগইন আছে কিনা?
+        // (Redirect হওয়ার পর অ্যাপ এখানেই ফিরে আসবে এবং এটা কাজ করবে)
         auth.onAuthStateChanged((user) => {
             if (user) {
-                showStatus("✅ Login Successful! Redirecting...", "success");
+                showStatus("✅ Login Successful! Redirecting to Home...", "success");
+                // ১ সেকেন্ড পর হোম পেজে নিয়ে যাবে
                 setTimeout(() => {
                     window.location.href = "home.html";
                 }, 1000);
             }
         });
 
-        // 2. Google Login Function (Popup)
+        // ২. Google Login Function (Redirect Method - PWA Safe)
         document.getElementById('googleLoginBtn').addEventListener('click', () => {
-            showStatus("⏳ Connecting to Google...", "success");
-            auth.signInWithPopup(provider).catch((error) => {
-                showStatus("❌ Error: " + error.message, "error");
-            });
+            showStatus("⏳ Connecting to Google... Please Wait.", "loading");
+            // **এই লাইনটি অ্যাপের সমস্যা সমাধান করবে**
+            auth.signInWithRedirect(provider); 
         });
 
-        // 3. Email Login Function
+        // ৩. Email Login Function
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -332,7 +336,7 @@
             
             let isValid = true;
 
-            // Validation
+            // Validation check
             if(!email) { emailError.style.display = 'block'; isValid = false; } 
             else { emailError.style.display = 'none'; }
 
@@ -340,10 +344,11 @@
             else { passError.style.display = 'none'; }
 
             if(isValid) {
-                showStatus("⏳ Verifying...", "success");
-                auth.signInWithEmailAndPassword(email, password).catch((error) => {
-                    showStatus("❌ Failed: " + error.message, "error");
-                });
+                showStatus("⏳ Verifying Credentials...", "loading");
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch((error) => {
+                        showStatus("❌ Failed: " + error.message, "error");
+                    });
             }
         });
     </script>

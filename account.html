@@ -106,7 +106,8 @@
             Available Balance : <span id="uBal">0.00</span> Tk 
             <i class="fas fa-sync-alt refresh-btn" onclick="location.reload()"></i>
         </div>
-        <div class="logout-btn" onclick="auth.signOut().then(()=>location.href='login.html')">Logout Account</div>
+        <!-- Logout Fixed: Now Redirects to index.html -->
+        <div class="logout-btn" onclick="userLogout()">Logout Account</div>
     </div>
 
     <!-- Stats Grid -->
@@ -196,6 +197,18 @@
         const db = firebase.database();
         const auth = firebase.auth();
 
+        // Logout Logic Updated: Redirects to index.html
+        function userLogout() {
+            if(confirm("আপনি কি লগআউট করতে চান?")) {
+                auth.signOut().then(() => {
+                    window.location.href = "index.html";
+                }).catch((error) => {
+                    console.error("Logout Error:", error);
+                    alert("সমস্যা হয়েছে!");
+                });
+            }
+        }
+
         auth.onAuthStateChanged(user => {
             if (user) {
                 // Gmail থেকে অটোমেটিক ছবি এবং নাম নেওয়া
@@ -234,8 +247,8 @@
                 });
 
             } else {
-                // লগইন না থাকলে মেসেজ
-                document.getElementById("uHi").innerText = "দয়া করে লগইন করুন";
+                // লগইন না থাকলে ইনডেক্স পেজে পাঠিয়ে দেবে
+                window.location.href = "index.html";
             }
         });
     </script>
