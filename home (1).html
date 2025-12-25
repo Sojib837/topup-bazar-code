@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topup Bazar - Home</title>
+    
+    <!-- Premium Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root { --primary: #6200ea; --navy: #000033; --green: #2ecc71; --red: #e74c3c; --bg: #f8f9ff; --text-gray: #8e8e93; }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        
+        body { 
+            background-color: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh;
+            padding-bottom: 80px; 
+        }
+
+        .main-container { flex: 1; }
+
+        /* --- Header --- */
+        .header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 10px 15px; background: #fff; position: sticky; top: 0; z-index: 1000; 
+            border-bottom: 1px solid #f0f0f0; height: 75px;
+        }
+        .logo-img { height: 55px; width: auto; object-fit: contain; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .balance-chip { background: #f4f4ff; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; color: var(--primary); border: 1px solid #e0e0ff; }
+        .user-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2.5px solid var(--primary); object-fit: cover; cursor: pointer; }
+
+        /* --- Notice Bar --- */
+        .notice-box { background: var(--primary); color: white; padding: 12px 15px; margin: 10px; border-radius: 12px; font-size: 12px; position: relative; display: flex; align-items: center; }
+        .notice-box marquee { flex: 1; font-weight: 500; }
+        .close-n { font-size: 20px; cursor: pointer; margin-left: 10px; }
+
+        /* --- Slider (3 Sec) --- */
+        .slider-wrap { width: 94%; height: 175px; margin: 5px auto 15px; overflow: hidden; position: relative; border-radius: 20px; background: #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .slider-wrap img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 1s ease-in-out; }
+        .slider-wrap img.active { opacity: 1; }
+
+        /* --- Product Grid (3 Items) --- */
+        .sec-title { text-align: center; color: var(--navy); font-size: 18px; font-weight: 800; text-transform: uppercase; margin: 30px 0 15px; }
+        .p-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 0 15px; }
+        .p-card { background: #fff; border-radius: 15px; overflow: hidden; border: 1px solid #f0f0f0; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.03); }
+        .p-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+        .p-name { padding: 8px 4px; font-size: 10px; font-weight: 700; color: #333; height: 38px; display: flex; align-items: center; justify-content: center; line-height: 1.2; text-transform: uppercase; }
+
+        /* --- Latest Orders --- */
+        .order-section { background: #fff; border-radius: 30px 30px 0 0; padding: 25px 15px; margin-top: 35px; border: 1px solid #eee; }
+        .order-section h3 { font-size: 17px; text-align: center; font-weight: 800; margin-bottom: 20px; }
+        .order-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fbfbfb; border: 1px solid #f2f2f2; border-radius: 18px; margin-bottom: 10px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px; }
+        .st-badge { font-size: 10px; padding: 5px 12px; border-radius: 20px; color: #fff; font-weight: bold; }
+
+        /* --- Stay Connected (Exact Dora Style) --- */
+        .footer { background: var(--navy); color: #fff; padding: 35px 20px 60px; text-align: center; margin-top: auto; }
+        .footer h4 { font-size: 17px; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px; }
+        .footer p { font-size: 11px; color: #ccc; margin-bottom: 20px; line-height: 1.5; }
+        .social-icons { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .social-icons a { width: 42px; height: 42px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 18px; }
+        
+        .support-center-box { text-align: left; max-width: 300px; margin: 0 auto; }
+        .support-center-box h5 { font-size: 16px; margin-bottom: 15px; text-align: center; }
+        .support-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; }
+        .support-card i { font-size: 28px; }
+        .support-card b { font-size: 14px; display: block; }
+        .support-card span { font-size: 11px; color: #aaa; }
+
+        /* --- Floating Help --- */
+        .help-fab { position: fixed; bottom: 95px; right: 20px; display: flex; align-items: center; gap: 10px; z-index: 1000; }
+        .help-pill { background: var(--red); color: white; padding: 8px 16px; border-radius: 25px; font-size: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); border: 2px solid #fff; }
+        .help-circle { background: var(--red); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; border: 2.5px solid #fff; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); text-decoration: none; }
+
+        /* --- Premium Bottom Nav (5 Buttons Dora Style) --- */
+        .bottom-nav { 
+            position: fixed; bottom: 0; width: 100%; background: #ffffff; 
+            display: flex; justify-content: space-around; padding: 12px 0 10px; 
+            border-top: 1px solid #f0f0f0; z-index: 2000; box-shadow: 0 -5px 15px rgba(0,0,0,0.03);
+        }
+        .nav-link { text-align: center; text-decoration: none; color: var(--text-gray); flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link i { font-size: 22px; }
+        .nav-link span { font-size: 10px; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Header -->
+        <header class="header">
+            <img src="https://i.ibb.co/993tz844/1743098669.png" class="logo-img" alt="Topup Bazar">
+            <div class="header-right">
+                <div class="balance-chip">৳ <span id="balance">0.00</span></div>
+                <!-- Profile Image Link: Fixed to myaccount.html -->
+                <img id="userImg" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="user-avatar" onclick="location.href='myaccount.html'">
+            </div>
+        </header>
+
+        <!-- Notice -->
+        <div class="notice-box" id="nb">
+            <marquee id="noticeTxt">অপেক্ষা করুন, নোটিশ লোড হচ্ছে...</marquee>
+            <span class="close-n" onclick="document.getElementById('nb').style.display='none'">&times;</span>
+        </div>
+
+        <!-- 3-Second Slider -->
+        <div class="slider-wrap" id="sliderArea"></div>
+
+        <!-- Product Grid Area -->
+        <div id="mainContent"></div>
+
+        <!-- Latest Orders -->
+        <div class="order-section">
+            <h3>Latest Orders</h3>
+            <div id="orderList"></div>
+        </div>
+    </div>
+
+    <!-- Stay Connected Footer -->
+    <footer class="footer">
+        <h4>STAY CONNECTED</h4>
+        <p>কোন সমস্যায় পড়লে টেলিগ্রাম এ যোগাযোগ করবেন। তাহলে দ্রুত সমাধান পেয়ে যাবেন।</p>
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+            <a href="#"><i class="far fa-envelope"></i></a>
+        </div>
+
+        <div class="support-center-box">
+            <h5>SUPPORT CENTER</h5>
+            <div class="support-card" onclick="window.location.href='https://t.me/your_telegram'">
+                <i class="fab fa-telegram-plane"></i>
+                <div>
+                    <b>Help line [9AM-12PM]</b>
+                    <span>টেলিগ্রামে সাপোর্ট</span>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 35px; font-size: 10px; color: #666;">© topupbazer 2025 | All Rights Reserved</div>
+    </footer>
+
+    <!-- Help Button -->
+    <div class="help-fab">
+        <div class="help-pill">সাহায্য লাগবে ?</div>
+        <a href="tel:01700000000" class="help-circle"><i class="fas fa-phone"></i></a>
+    </div>
+
+    <!-- Bottom Navigation (All Links Fixed Correctly) -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-link active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="addmoney.html" class="nav-link">
+            <i class="fas fa-wallet"></i>
+            <span>Add Money</span>
+        </a>
+        <a href="myorders.html" class="nav-link">
+            <i class="fas fa-history"></i>
+            <span>My Order</span>
+        </a>
+        <a href="mycodes.html" class="nav-link">
+            <i class="fas fa-qrcode"></i>
+            <span>My Codes</span>
+        </a>
+        <a href="myaccount.html" class="nav-link">
+            <i class="fas fa-user-circle"></i>
+            <span>My Account</span>
+        </a>
+    </nav>
+
+    <script>
+        // --- Firebase Configuration ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A", 
+            authDomain: "topup-bazer-53c10.firebaseapp.com", 
+            databaseURL: "https://topup-bazer-53c10-default-rtdb.firebaseio.com", 
+            projectId: "topup-bazer-53c10", 
+            storageBucket: "topup-bazer-53c10.firebasestorage.app", 
+            messagingSenderId: "451264656346", 
+            appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // 1. User Sync & Registration Logic
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Gmail Photo
+                if(user.photoURL) document.getElementById("userImg").src = user.photoURL;
+
+                // --- NEW: Register User in Database ---
+                const userRef = db.ref("users/" + user.uid);
+                userRef.once("value", snapshot => {
+                    if (!snapshot.exists()) {
+                        // যদি নতুন ইউজার হয়, তার তথ্য অ্যাডমিন প্যানেলের জন্য সেভ হবে
+                        userRef.set({
+                            uid: user.uid,
+                            name: user.displayName || "Customer",
+                            email: user.email,
+                            balance: 0.00,
+                            profileImg: user.photoURL || "",
+                            joinDate: new Date().toLocaleString()
+                        });
+                    }
+                });
+
+                // Balance রিয়েল টাইম আপডেট
+                db.ref("users/" + user.uid + "/balance").on("value", s => {
+                    const bal = s.val() || 0;
+                    document.getElementById("balance").innerText = parseFloat(bal).toFixed(2);
+                });
+
+            }
+        });
+
+        // 2. Notice Sync
+        db.ref("admin/settings/notice").on("value", s => {
+            document.getElementById("noticeTxt").innerText = s.val() || "Welcome to Topup Bazer!";
+        });
+
+        // 3. 3-Second Slider Auto Loop
+        db.ref("admin/sliders").limitToFirst(3).on("value", s => {
+            const area = document.getElementById("sliderArea"); area.innerHTML = "";
+            let i = 0;
+            s.forEach(child => {
+                const img = document.createElement("img");
+                img.src = child.val().url;
+                if(i===0) img.classList.add("active");
+                area.appendChild(img);
+                i++;
+            });
+            setInterval(() => {
+                const active = document.querySelector(".slider-wrap img.active");
+                if(!active) return;
+                let next = active.nextElementSibling || document.querySelector(".slider-wrap img:first-child");
+                active.classList.remove("active");
+                next.classList.add("active");
+            }, 3000);
+        });
+
+        // 4. Products (3 Items Per Row)
+        db.ref("admin/products").on("value", s => {
+            const cont = document.getElementById("mainContent"); cont.innerHTML = "";
+            const groups = {};
+            s.forEach(child => {
+                const p = child.val();
+                if(!groups[p.category]) groups[p.category] = [];
+                groups[p.category].push({id: child.key, ...p});
+            });
+            for(let cat in groups) {
+                let h = `<div class="sec-title">${cat}</div><div class="p-grid">`;
+                groups[cat].forEach(p => {
+                    h += `<div class="p-card" onclick="location.href='details.html?id=${p.id}'"><img src="${p.image}"><div class="p-name">${p.name}</div></div>`;
+                });
+                cont.innerHTML += h + `</div>`;
+            }
+        });
+
+        // 5. Latest Orders
+        const colors = ['#2ecc71', '#e91e63', '#9b59b6', '#3498db', '#f39c12'];
+        db.ref("orders").limitToLast(6).on("value", s => {
+            const list = document.getElementById("orderList"); list.innerHTML = "";
+            let data = []; s.forEach(x => data.push(x.val()));
+            data.reverse().forEach(o => {
+                const bg = colors[Math.floor(Math.random() * colors.length)];
+                list.innerHTML += `
+                <div class="order-row">
+                    <div class="order-l">
+                        <div class="avatar" style="background:${bg}">${o.userName ? o.userName[0].toUpperCase() : 'M'}</div>
+                        <div style="display:flex; flex-direction:column;">
+                            <b style="font-size:12px;">${o.userName || 'Customer'}</b>
+                            <span style="font-size:10px; color:#777;">${o.productName} - ৳${o.price}</span>
+                        </div>
+                    </div>
+                    <div class="st-badge" style="background:${o.status==='Completed'?'#2ecc71':'#e74c3c'}">${o.status}</div>
+                </div>`;
+            });
+        });
+    </script>
+</body>
+</html>

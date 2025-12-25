@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Codes - Topup Bazar</title>
+    
+    <!-- Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root { --primary: #6200ea; --navy: #000033; --green: #2ecc71; --red: #e74c3c; --bg: #f4f7fa; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        
+        body { background-color: var(--bg); display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 110px; }
+        .flex-content { flex: 1; }
+
+        /* --- Header --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 1000; height: 75px; }
+        .logo-img { height: 45px; cursor: pointer; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .bal-chip { background: var(--primary); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(98,0,234,0.3); }
+        .user-pic { width: 42px; height: 42px; border-radius: 50%; border: 2.5px solid var(--primary); object-fit: cover; background: #eee; }
+
+        /* --- Main Card --- */
+        .main-card { background: #fff; margin: 15px 12px; border-radius: 10px; border: 1px solid #ddd; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card-head { padding: 12px 15px; border-bottom: 1px solid #ddd; font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 10px; font-size: 17px; }
+        
+        .code-list-area { padding: 15px; }
+        .code-item { border-bottom: 1px solid #f0f0f0; padding: 15px 0; line-height: 2; font-size: 14px; color: #333; }
+        .code-item:last-child { border-bottom: none; }
+        .code-item b { width: 85px; display: inline-block; color: #000; font-weight: 700; }
+        
+        .pin-box { background: #f0f0ff; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-family: monospace; font-size: 15px; border: 1px dashed var(--primary); }
+        .copy-btn { margin-left: 10px; background: var(--navy); color: #fff; border: none; padding: 2px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+
+        /* Empty State */
+        .no-data { text-align: center; padding: 40px 20px; color: #999; }
+        .no-data i { font-size: 40px; margin-bottom: 10px; opacity: 0.2; display: block; }
+
+        /* --- Stay Connected Footer (Exact Style) --- */
+        .footer { background: var(--navy); color: #fff; padding: 35px 20px 80px; text-align: center; margin-top: 30px; border-radius: 30px 30px 0 0; }
+        .footer h4 { font-size: 18px; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px; }
+        .footer p { font-size: 11.5px; color: #ccc; margin-bottom: 25px; line-height: 1.5; }
+        .social-icons { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .social-icons a { width: 45px; height: 45px; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 20px; transition: 0.3s; }
+        
+        .sup-box { background: rgba(255,255,255,0.06); border: 1.2px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 18px; display: flex; align-items: center; gap: 15px; max-width: 320px; margin: 0 auto; text-align: left; cursor: pointer; }
+        .sup-box i { font-size: 30px; color: #fff; }
+        .sup-box b { font-size: 14px; display: block; }
+
+        /* --- Help FAB --- */
+        .help-wrap { position: fixed; bottom: 85px; right: 15px; display: flex; align-items: center; gap: 8px; z-index: 1000; }
+        .help-pill { background: var(--red); color: white; padding: 7px 15px; border-radius: 25px; font-size: 12px; font-weight: bold; border: 1.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .help-circle { background: var(--red); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; border: 2.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; }
+
+        /* --- Premium Navigation (5 Buttons) --- */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 12px 0 10px; border-top: 1px solid #f0f0f0; z-index: 2000; box-shadow: 0 -5px 15px rgba(0,0,0,0.03); }
+        .nav-link { text-align: center; text-decoration: none; color: #8e8e93; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link i { font-size: 22px; }
+        .nav-link span { font-size: 10px; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <div class="flex-content">
+        <!-- Header -->
+        <header class="header">
+            <img src="https://i.ibb.co/993tz844/1743098669.png" class="logo-img" onclick="location.href='home.html'">
+            <div class="header-right">
+                <div class="bal-chip">৳ <span id="topBal">0.00</span></div>
+                <img id="userImg" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="user-pic" onclick="location.href='account.html'">
+            </div>
+        </header>
+
+        <!-- Codes Section -->
+        <div class="main-card">
+            <div class="card-head">
+                <i class="fas fa-qrcode"></i> My Codes
+            </div>
+            
+            <div id="codesListArea" class="code-list-area">
+                <!-- ডাটা লোড হবে এখানে -->
+                <p style="text-align: center; color: #999; padding: 20px;">কোড লোড হচ্ছে...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stay Connected Footer -->
+    <footer class="footer">
+        <h4>STAY CONNECTED</h4>
+        <p>কোন সমস্যায় পড়লে টেলিগ্রাম এ যোগাযোগ করবেন। তাহলে দ্রুত সমাধান পেয়ে যাবেন।</p>
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+            <a href="#"><i class="far fa-envelope"></i></a>
+        </div>
+        
+        <div class="sup-box" onclick="window.location.href='https://t.me/your_telegram'">
+            <i class="fab fa-telegram-plane"></i>
+            <div>
+                <b>Help line [9AM-12PM]</b>
+                <span>টেলিগ্রামে সাপোর্ট পান</span>
+            </div>
+        </div>
+        <p style="margin-top: 35px; font-size: 10px; color: #777;">© topupbazer 2025 | All Rights Reserved</p>
+    </footer>
+
+    <!-- Help Pill & FAB -->
+    <div class="help-wrap">
+        <div class="help-pill">সাহায্য লাগবে ?</div>
+        <a href="tel:01700000000" class="help-circle"><i class="fas fa-phone"></i></a>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-link"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="addmoney.html" class="nav-link"><i class="fas fa-wallet"></i><span>Add Money</span></a>
+        <a href="orders.html" class="nav-link"><i class="fas fa-history"></i><span>My Orders</span></a>
+        <a href="codes.html" class="nav-link active"><i class="fas fa-qrcode"></i><span>My Codes</span></a>
+        <a href="account.html" class="nav-link"><i class="fas fa-user-circle"></i><span>My Account</span></a>
+    </nav>
+
+    <script>
+        // --- Firebase Config ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A", 
+            authDomain: "topup-bazer-53c10.firebaseapp.com", 
+            databaseURL: "https://topup-bazer-53c10-default-rtdb.firebaseio.com", 
+            projectId: "topup-bazer-53c10", 
+            storageBucket: "topup-bazer-53c10.firebasestorage.app", 
+            messagingSenderId: "451264656346", 
+            appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // ১. প্রোফাইল ও ব্যালেন্স লোড
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                if(user.photoURL) document.getElementById("userImg").src = user.photoURL;
+                db.ref("users/" + user.uid + "/balance").on("value", s => {
+                    document.getElementById("topBal").innerText = (s.val() || 0).toFixed(2);
+                });
+
+                // কোড লিস্ট লোড করা
+                fetchMyCodes(user.uid);
+            } else {
+                // ভিউ দেখার জন্য রিডাইরেক্ট বন্ধ রাখা হলো
+                document.getElementById("codesListArea").innerHTML = `<div class="no-data"><i class="fas fa-user-lock"></i> কোড দেখতে দয়া করে লগইন করুন।</div>`;
+            }
+        });
+
+        // ২. কোড নিয়ে আসার ফাংশন
+        function fetchMyCodes(uid) {
+            // ডাটাবেসে 'user_codes' নামে ফোল্ডার থাকতে হবে যেখানে আপনার কোডগুলো সেভ হয়
+            db.ref("user_codes").orderByChild("uid").equalTo(uid).on("value", s => {
+                const listArea = document.getElementById("codesListArea");
+                listArea.innerHTML = "";
+                
+                if(!s.exists()) {
+                    listArea.innerHTML = `<div class="no-data"><i class="fas fa-qrcode"></i> আপনার কোনো কেনা কোড নেই।</div>`;
+                    return;
+                }
+
+                s.forEach(child => {
+                    const data = child.val();
+                    listArea.innerHTML += `
+                        <div class="code-item">
+                            <b>Item:</b> ${data.itemName}<br>
+                            <b>Pin/Code:</b> <span class="pin-box" id="p${child.key}">${data.code}</span> 
+                            <button class="copy-btn" onclick="copyToClipboard('${data.code}')">Copy</button><br>
+                            <b>Date:</b> ${data.date || 'N/A'}
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // ৩. কপি ফাংশন
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("কোডটি কপি করা হয়েছে!");
+            });
+        }
+    </script>
+</body>
+</html>

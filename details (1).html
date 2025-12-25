@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details - Topup Bazar Pro</title>
+    
+    <!-- Premium Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root { --primary: #6200ea; --navy: #000033; --green: #2ecc71; --red: #e74c3c; --bg: #f4f7fa; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Hind Siliguri', sans-serif; }
+        
+        body { background-color: var(--bg); display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 110px; }
+        .flex-content { flex: 1; }
+
+        /* --- Header (Dora Style) --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 1000; height: 75px; }
+        .logo-img { height: 45px; cursor: pointer; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .bal-chip { background: var(--primary); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(98,0,234,0.2); }
+        .user-avatar { width: 42px; height: 42px; border-radius: 50%; border: 2.5px solid var(--primary); object-fit: cover; background: #eee; }
+
+        /* --- Product Banner --- */
+        .p-banner { background: #fff; padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #eee; }
+        .p-banner img { width: 90px; height: 90px; border-radius: 12px; object-fit: cover; background: #f0f0f0; }
+        .p-banner h2 { font-size: 18px; color: var(--navy); margin-bottom: 2px; }
+
+        /* --- Card Sections --- */
+        .card-box { background: #fff; margin: 15px 12px; border-radius: 12px; padding: 15px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .sec-title { display: flex; align-items: center; font-size: 16px; font-weight: 800; color: var(--navy); margin-bottom: 15px; }
+        .sec-num { background: var(--primary); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 12px; font-weight: bold; }
+
+        /* --- Packages Grid --- */
+        .pkg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pkg-card { border: 1.5px solid #eee; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; position: relative; transition: 0.3s; }
+        .pkg-card.active { border-color: var(--primary); background: #f4f0ff; }
+        .pkg-name { font-size: 13px; font-weight: bold; color: #333; }
+        .pkg-price { font-size: 12px; color: var(--primary); font-weight: 800; margin-top: 5px; }
+
+        /* --- Inputs & Buttons --- */
+        .input-f { width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 8px; margin-bottom: 12px; outline: none; font-size: 14px; background: #fbfbfb; }
+        .btn-check { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #idCheckDisplay { display:none; margin-top:10px; font-size:14px; font-weight:bold; color:var(--green); text-align: center; background: #e8f5e9; padding: 10px; border-radius: 8px; border: 1px solid #c8e6c9; }
+
+        /* --- Payment Selection --- */
+        .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .pay-card { border: 1.5px solid #eee; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; position: relative; }
+        .pay-card.active { border-color: var(--red); }
+        .pay-card.active::before { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 3px; left: 3px; background: var(--red); color: white; width: 18px; height: 18px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+        .pay-card img { width: 100%; height: 50px; object-fit: contain; }
+        .pay-tag { background: #f5f5f5; padding: 4px; border-radius: 5px; font-size: 11px; font-weight: bold; color: #666; margin-top: 5px; }
+
+        /* --- Calculation Area --- */
+        .calc-box { padding: 0 20px; font-size: 12px; color: #555; margin-bottom: 15px; }
+        .calc-line { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+        .calc-line b { color: var(--primary); font-weight: 700; }
+
+        .btn-buy { width: calc(100% - 24px); margin: 0 12px; background: var(--primary); color: #fff; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 15px rgba(98, 0, 234, 0.2); }
+
+        /* --- Rules Section --- */
+        .rules-area { padding: 25px 20px; background: #fff; margin-top: 30px; border-top: 1px solid #eee; }
+        .rules-list { list-style: none; }
+        .rules-list li { font-size: 13px; color: #444; margin-bottom: 12px; display: flex; gap: 10px; line-height: 1.5; }
+        .rules-list li::before { content: '⦿'; color: #000; font-weight: bold; }
+
+        /* --- Stay Connected Footer --- */
+        .footer { background: var(--navy); color: #fff; padding: 35px 20px 80px; text-align: center; }
+        .footer h4 { font-size: 18px; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px; }
+        .footer p { font-size: 11px; color: #ccc; margin-bottom: 25px; line-height: 1.5; }
+        .social-links { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .social-links a { width: 45px; height: 45px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 18px; }
+        
+        .support-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 15px; display: flex; align-items: center; gap: 15px; max-width: 320px; margin: 0 auto; text-align: left; }
+
+        /* --- Bottom Nav --- */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 12px 0 10px; border-top: 1px solid #f0f0f0; z-index: 2000; box-shadow: 0 -5px 15px rgba(0,0,0,0.03); }
+        .nav-link { text-align: center; text-decoration: none; color: #8e8e93; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link i { font-size: 22px; }
+        .nav-link span { font-size: 10px; font-weight: 700; }
+        
+        .help-fab { position: fixed; bottom: 100px; right: 20px; background: var(--red); color: white; padding: 8px 18px; border-radius: 30px; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 8px; border: 2px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2001; }
+    </style>
+</head>
+<body>
+
+    <div class="flex-content">
+        <!-- Header -->
+        <header class="header">
+            <img src="https://i.ibb.co/993tz844/1743098669.png" class="logo-img" onclick="location.href='home.html'">
+            <div class="header-right">
+                <div class="bal-chip"><i class="fas fa-wallet"></i> ৳ <span id="topBalance">0.00</span></div>
+                <img id="userImg" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="user-avatar" onclick="location.href='account.html'">
+            </div>
+        </header>
+
+        <!-- Product Banner -->
+        <div class="p-banner">
+            <img id="pImg" src="https://via.placeholder.com/90?text=Topup">
+            <div>
+                <h2 id="pName">লোড হচ্ছে...</h2>
+                <p style="color: #888; font-size: 13px;">Game / Top up</p>
+            </div>
+        </div>
+
+        <!-- 1. Select Recharge -->
+        <div class="card-box">
+            <div class="sec-title"><span class="sec-icon">1</span> Select Recharge</div>
+            <div class="pkg-grid" id="pkgArea">
+                <p style="text-align:center; color:#999; width:100%;">প্যাকেজ লোড হচ্ছে...</p>
+            </div>
+        </div>
+
+        <!-- 2. Account Info -->
+        <div class="card-box">
+            <div class="sec-title"><span class="sec-icon">2</span> Account Info</div>
+            <p style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">এখানে গেমের আইডি কোড দিন</p>
+            <input type="number" id="gameID" class="input-f" placeholder="গেম আইডি লিখুন...">
+            <button class="btn-check" id="checkBtn" onclick="checkFFPlayerName()">আপনার গেম আইডির নাম চেক করুন</button>
+            <div id="idCheckDisplay">প্লেয়ার নাম: লোড হচ্ছে...</div>
+        </div>
+
+        <!-- 3. Payment Option -->
+        <div class="card-box">
+            <div class="sec-title"><span class="sec-icon">3</span> Select one option</div>
+            <div class="pay-grid">
+                <div class="pay-card active" onclick="setPayMethod('wallet', this)">
+                    <img id="wIcon" src="https://i.ibb.co/q9P5Y2v/wallet-pay.png">
+                    <div class="pay-tag">Wallet Pay</div>
+                </div>
+                <div class="pay-card" onclick="setPayMethod('instant', this)">
+                    <img id="iIcon" src="https://i.ibb.co/hV4S6Xq/payment-gateways.png">
+                    <div class="pay-tag">Instant Pay</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calc Info -->
+        <div class="calc-box">
+            <div class="calc-line"><i class="fas fa-info-circle"></i> আপনার অ্যাকাউন্ট ব্যালেন্স <b>৳ <span id="uBal">0.00</span></b> <i class="fas fa-sync-alt" style="font-size:12px; color:var(--primary); cursor:pointer;" onclick="location.reload()"></i></div>
+            <div class="calc-line"><i class="fas fa-info-circle"></i> প্রোডাক্ট কিনতে আপনার প্রয়োজন <b>৳ <span id="nBal">0</span></b> ।</div>
+        </div>
+
+        <button class="btn-buy" id="buyBtn">Buy Now</button>
+
+        <!-- Rules Section -->
+        <div class="rules-area">
+            <h3 style="font-size: 16px; margin-bottom: 15px; font-weight: 800;">Rules & Conditions</h3>
+            <ul class="rules-list">
+                <li>শুধুমাত্র Bangladesh সার্ভারে ID Code দিয়ে টপ আপ হবে</li>
+                <li>Player ID ভুল দিয়ে Diamond না পেলে Topup Bazar কর্তৃপক্ষ দায়ী নয়</li>
+                <li>Order কমপ্লিট হওয়ার পরেও আইডিতে ডাইমন্ড না গেলে চেক করার জন্য ID Pass দিতে হবে</li>
+                <li>অর্ডার Cancel হলে কি কারণে তা Cancel হয়েছে তা অর্ডার হিস্টোরিতে দেওয়া থাকে অনুগ্রহ পূর্বক দেখে পুনরায় সঠিক তথ্য দিয়ে অর্ডার করবেন</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Stay Connected Footer -->
+    <footer class="footer">
+        <h4>STAY CONNECTED</h4>
+        <p>কোন সমস্যায় পড়লে টেলিগ্রাম এ যোগাযোগ করবেন। তাহলে দ্রুত সমাধান পেয়ে যাবেন।</p>
+        <div class="social-links">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+            <a href="#"><i class="far fa-envelope"></i></a>
+        </div>
+        <div class="support-card" onclick="window.location.href='https://t.me/your_telegram'">
+            <i class="fab fa-telegram-plane" style="font-size:28px;"></i>
+            <div>
+                <b>Help line [9AM-12PM]</b>
+                <span>টেলিগ্রামে সাপোর্ট পান</span>
+            </div>
+        </div>
+        <p style="margin-top: 35px; font-size: 10px; color: #666;">© topupbazer 2025 | All Rights Reserved</p>
+    </footer>
+
+    <!-- Help FAB -->
+    <a href="tel:01700000000" class="help-fab">সাহায্য লাগবে ? <i class="fas fa-phone"></i></a>
+
+    <!-- Navigation -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-link active"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="addmoney.html" class="nav-link"><i class="fas fa-wallet"></i><span>Add Money</span></a>
+        <a href="orders.html" class="nav-link"><i class="fas fa-history"></i><span>My Order</span></a>
+        <a href="codes.html" class="nav-link"><i class="fas fa-qrcode"></i><span>My Codes</span></a>
+        <a href="account.html" class="nav-link"><i class="fas fa-user-circle"></i><span>My Account</span></a>
+    </nav>
+
+    <script>
+        // --- Firebase Config ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A", 
+            authDomain: "topup-bazer-53c10.firebaseapp.com", 
+            databaseURL: "https://topup-bazer-53c10-default-rtdb.firebaseio.com", 
+            projectId: "topup-bazer-53c10", 
+            storageBucket: "topup-bazer-53c10.firebasestorage.app", 
+            messagingSenderId: "451264656346", 
+            appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        const productId = new URLSearchParams(window.location.search).get('id');
+        let currentBalance = 0, selectedPkg = null, payMethod = 'wallet';
+
+        // 1. Gmail Profile Sync & Balance
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                if(user.photoURL) document.getElementById("userImg").src = user.photoURL;
+                db.ref("users/" + user.uid + "/balance").on("value", s => {
+                    currentBalance = s.val() || 0;
+                    document.getElementById("topBalance").innerText = parseFloat(currentBalance).toFixed(2);
+                    document.getElementById("uBal").innerText = parseFloat(currentBalance).toFixed(2);
+                });
+            } else {
+                alert("দয়া করে লগইন করুন!");
+                location.href = "login.html";
+            }
+        });
+
+        // 2. Load Payment Icons & Notice from Admin
+        db.ref("admin/settings").on("value", s => {
+            const data = s.val();
+            if(data && data.payment_images) {
+                if(data.payment_images.wallet) document.getElementById("wIcon").src = data.payment_images.wallet;
+                if(data.payment_images.instant) document.getElementById("iIcon").src = data.payment_images.instant;
+            }
+        });
+
+        // 3. Load Product Info
+        if (productId) {
+            db.ref("admin/products/" + productId).on("value", s => {
+                const p = s.val();
+                if(!p) {
+                    document.getElementById("pName").innerText = "প্রোডাক্ট পাওয়া যায়নি!";
+                    return;
+                }
+                document.getElementById("pName").innerText = p.name;
+                document.getElementById("pImg").src = p.image || "";
+                const area = document.getElementById("pkgArea"); area.innerHTML = "";
+                if(p.packages) {
+                    Object.keys(p.packages).forEach(k => {
+                        const pkg = p.packages[k];
+                        const div = document.createElement("div");
+                        div.className = "pkg-card";
+                        div.innerHTML = `<div class="pkg-name">${pkg.name}</div><div class="pkg-price">BDT ${pkg.price}</div>`;
+                        div.onclick = () => {
+                            document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('active'));
+                            div.classList.add('active');
+                            selectedPkg = pkg;
+                            document.getElementById("nBal").innerText = pkg.price;
+                        };
+                        area.appendChild(div);
+                    });
+                }
+            });
+        }
+
+        // 4. Player Name Checker (Fixed BD Server Logic)
+        async function checkFFPlayerName() {
+            const uid = document.getElementById("gameID").value;
+            const display = document.getElementById("idCheckDisplay");
+            const btn = document.getElementById("checkBtn");
+            if(!uid || uid.length < 5) { alert("সঠিক আইডি দিন!"); return; }
+            display.style.display = "block";
+            display.innerText = "চেক করা হচ্ছে...";
+            btn.disabled = true;
+            try {
+                const url = `https://check-id-game1.p.rapidapi.com/api/game/freefire?id=${uid}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'X-RapidAPI-Key': '5e0bfb8361mshc0797baaf757c34p14914fjsnae88036947d4',
+                        'X-RapidAPI-Host': 'check-id-game1.p.rapidapi.com'
+                    }
+                });
+                const result = await response.json();
+                if (result && (result.nickname || result.name)) {
+                    display.innerText = "প্লেয়ার নাম: " + (result.nickname || result.name);
+                    display.style.color = "var(--green)";
+                } else {
+                    display.innerText = "গেম সার্ভার ব্যস্ত! তবে আপনি অর্ডার করতে পারেন।";
+                    display.style.color = "orange";
+                }
+            } catch (e) {
+                display.innerText = "সার্ভার এরর, সরাসরি অর্ডার করুন।";
+                display.style.color = "orange";
+            } finally { btn.disabled = false; }
+        }
+
+        function setPayMethod(m, el) {
+            document.querySelectorAll('.pay-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            payMethod = m;
+        }
+
+        // 5. Buy Now Logic (Wallet Deduction)
+        document.getElementById("buyBtn").onclick = function() {
+            const gid = document.getElementById("gameID").value;
+            if(!selectedPkg || !gid) return alert("প্যাকেজ এবং আইডি দিন!");
+            if(payMethod === 'wallet') {
+                if(currentBalance < selectedPkg.price) return alert("আপনার ব্যালেন্স পর্যাপ্ত নয়!");
+                if(confirm("অর্ডার নিশ্চিত করতে চান? টাকা ওয়ালেট থেকে কাটা হবে।")) {
+                    const oId = db.ref("orders").push().key;
+                    const data = { orderId: oId, uid: auth.currentUser.uid, userName: auth.currentUser.displayName, productName: document.getElementById("pName").innerText, packageName: selectedPkg.name, price: selectedPkg.price, playerInfo: gid, status: "Pending", time: new Date().toLocaleString() };
+                    db.ref("orders/" + oId).set(data).then(() => {
+                        db.ref("users/" + auth.currentUser.uid + "/balance").set(currentBalance - selectedPkg.price);
+                        alert("অর্ডার সফল!"); location.href = "orders.html";
+                    });
+                }
+            } else { alert("Instant Pay Gateway বর্তমানে রক্ষণাবেক্ষণের অধীনে আছে।"); }
+        };
+    </script>
+</body>
+</html>

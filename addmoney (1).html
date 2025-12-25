@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Money - Topup Bazar</title>
+    
+    <!-- Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root { --primary: #6200ea; --navy: #000033; --green: #2ecc71; --red: #e74c3c; --bg: #f4f7fa; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        
+        body { background-color: var(--bg); display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 110px; }
+        .main-content { flex: 1; }
+
+        /* --- Header --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #fff; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 1000; height: 75px; }
+        .logo-img { height: 45px; cursor: pointer; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .bal-chip { background: var(--primary); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(98,0,234,0.3); }
+        .user-avatar { width: 42px; height: 42px; border-radius: 50%; border: 2.5px solid var(--primary); object-fit: cover; background: #eee; }
+
+        /* --- Add Money Card --- */
+        .card { background: #fff; margin: 25px 15px; border-radius: 15px; padding: 25px; border: 1px solid #eee; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; }
+        .card-title { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+        .step-num { background: var(--primary); color: #fff; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 13px; font-weight: bold; }
+
+        /* --- Input Field --- */
+        .input-label { display: block; font-size: 15px; font-weight: 700; color: #333; margin-bottom: 15px; }
+        .amount-f { width: 100%; padding: 16px; border: 2px solid #eee; border-radius: 12px; font-size: 20px; font-weight: bold; outline: none; background: #fafafa; color: var(--primary); text-align: center; transition: 0.3s; }
+        .amount-f:focus { border-color: var(--primary); background: #fff; }
+
+        /* --- Action Button --- */
+        .btn-pay { width: calc(100% - 30px); margin: 0 15px; background: var(--primary); color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(98,0,234,0.3); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-pay:active { transform: scale(0.97); }
+
+        /* --- Rules Section --- */
+        .rules-area { padding: 30px 20px; background: #fff; margin-top: 30px; border-top: 1px solid #eee; }
+        .rules-area h3 { font-size: 17px; font-weight: 800; margin-bottom: 15px; }
+        .rules-list { list-style: none; padding: 0; }
+        .rules-list li { font-size: 13.5px; color: #444; margin-bottom: 12px; display: flex; gap: 10px; line-height: 1.5; }
+        .rules-list li::before { content: '⦿'; color: var(--primary); font-weight: bold; }
+
+        /* --- Stay Connected Footer (Complete Style) --- */
+        .footer { background: var(--navy); color: #fff; padding: 35px 20px 80px; text-align: center; }
+        .footer h4 { font-size: 18px; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .footer p { font-size: 11px; color: #ccc; margin-bottom: 25px; line-height: 1.5; }
+        .social-links { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .social-links a { width: 45px; height: 45px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 20px; transition: 0.3s; }
+        
+        .support-card { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 15px; display: flex; align-items: center; gap: 15px; max-width: 320px; margin: 0 auto; text-align: left; cursor: pointer; }
+        .support-card i { font-size: 28px; color: #fff; }
+        .support-card b { font-size: 14px; display: block; }
+        .support-card span { font-size: 11px; color: #aaa; }
+
+        /* --- Help Button --- */
+        .help-fab { position: fixed; bottom: 100px; right: 20px; background: var(--red); color: #fff; border-radius: 50%; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border: 2.5px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2001; }
+
+        /* --- Bottom Navigation (5 Premium Buttons) --- */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 12px 0 10px; border-top: 1px solid #f0f0f0; z-index: 2000; box-shadow: 0 -5px 15px rgba(0,0,0,0.03); }
+        .nav-link { text-align: center; text-decoration: none; color: #8e8e93; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link i { font-size: 22px; }
+        .nav-link span { font-size: 10px; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <img src="https://i.ibb.co/993tz844/1743098669.png" class="logo-img" onclick="location.href='home.html'">
+            <div class="header-right">
+                <div class="bal-chip"><i class="fas fa-wallet"></i> ৳ <span id="topBal">0.00</span></div>
+                <!-- অটোমেটিক জিমেইল প্রোফাইল পিকচার -->
+                <img id="userGmailImg" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="user-avatar" onclick="location.href='account.html'">
+            </div>
+        </header>
+
+        <!-- Enter Amount Section -->
+        <div class="card">
+            <div class="card-title"><span class="step-num">1</span> Enter Amount</div>
+            <label class="input-label">কত টাকা অ্যাড করতে চান? (Amount)</label>
+            <input type="number" id="finalAmount" class="amount-f" placeholder="0.00">
+            <p style="font-size: 12px; color: #888; margin-top: 15px;">ন্যূনতম ১০ টাকা অ্যাড করা যাবে।</p>
+        </div>
+
+        <!-- Action Button -->
+        <button class="btn-pay" onclick="goToPaymentGateway()">
+            <i class="fas fa-bolt"></i> Add Money Now
+        </button>
+
+        <!-- Rules Section -->
+        <div class="rules-area">
+            <h3>টাকা অ্যাড করার নিয়মাবলী:</h3>
+            <ul class="rules-list">
+                <li>উপরে আপনার টাকার পরিমাণ লিখে 'Add Money Now' বাটনে ক্লিক করুন।</li>
+                <li>ক্লিক করার পর আপনি অটোমেটিক পেমেন্ট পেজে চলে যাবেন।</li>
+                <li>সেখানে আপনার বিকাশ, নগদ বা রকেট একাউন্ট থেকে পেমেন্ট সম্পন্ন করুন।</li>
+                <li>পেমেন্ট সফল হওয়ার সাথে সাথে আপনার ওয়ালেটে ব্যালেন্স যুক্ত হবে।</li>
+                <li>কোনো সমস্যা হলে টেলিগ্রাম সাপোর্টে যোগাযোগ করুন।</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Stay Connected Footer (Exact Style) -->
+    <footer class="footer">
+        <h4>STAY CONNECTED</h4>
+        <p>যেকোনো সমস্যায় টেলিগ্রাম এ যোগাযোগ করুন। তাহলে দ্রুত সমাধান পেয়ে যাবেন।</p>
+        <div class="social-links">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-youtube"></i></a>
+            <a href="#"><i class="far fa-envelope"></i></a>
+        </div>
+        <div class="support-card" onclick="window.location.href='https://t.me/your_telegram'">
+            <i class="fab fa-telegram-plane"></i>
+            <div>
+                <b>Help line [9AM-12PM]</b>
+                <span>টেলিগ্রামে সাপোর্ট পান</span>
+            </div>
+        </div>
+        <div style="margin-top: 35px; font-size: 10px; color: #666;">© topupbazer 2025 | All Rights Reserved</div>
+    </footer>
+
+    <!-- Help Button -->
+    <a href="tel:01700000000" class="help-fab"><i class="fas fa-phone"></i></a>
+
+    <!-- Navigation (5 Premium Buttons) -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-link"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="addmoney.html" class="nav-link active"><i class="fas fa-wallet"></i><span>Add Money</span></a>
+        <a href="orders.html" class="nav-link"><i class="fas fa-history"></i><span>My Order</span></a>
+        <a href="codes.html" class="nav-link"><i class="fas fa-qrcode"></i><span>My Codes</span></a>
+        <a href="account.html" class="nav-link"><i class="fas fa-user-circle"></i><span>My Account</span></a>
+    </nav>
+
+    <script>
+        // --- Firebase Config ---
+        const firebaseConfig = { 
+            apiKey: "AIzaSyALShf7xhNOStgSRcs0pfHcDGBbNQ7Wn6A", 
+            authDomain: "topup-bazer-53c10.firebaseapp.com", 
+            databaseURL: "https://topup-bazer-53c10-default-rtdb.firebaseio.com", 
+            projectId: "topup-bazer-53c10", 
+            storageBucket: "topup-bazer-53c10.firebasestorage.app", 
+            messagingSenderId: "451264656346", 
+            appId: "1:451264656346:web:95f0b420120c77ff7c06e3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        let gatewayApi = null;
+
+        // 1. জিমেইল ফটো এবং রিয়েল-টাইম ব্যালেন্স সিঙ্ক
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // জিমেইল থেকে প্রোফাইল ছবি
+                if(user.photoURL) {
+                    document.getElementById("userGmailImg").src = user.photoURL;
+                }
+                // ডাটাবেস থেকে ব্যালেন্স
+                db.ref("users/" + user.uid + "/balance").on("value", s => {
+                    const balance = s.val() || 0;
+                    document.getElementById("topBal").innerText = balance.toFixed(2);
+                });
+            }
+        });
+
+        // 2. অ্যাডমিন প্যানেল থেকে গেটওয়ে সেটিংস আনা
+        db.ref("admin/settings/gateway").on("value", s => {
+            gatewayApi = s.val();
+        });
+
+        // 3. পেমেন্ট গেটওয়ে রিডাইরেকশন লজিক
+        function goToPaymentGateway() {
+            const amount = document.getElementById("finalAmount").value;
+
+            if(!amount || amount < 10) {
+                return alert("দয়া করে ন্যূনতম ১০ টাকা লিখুন!");
+            }
+
+            if(!gatewayApi || !gatewayApi.url || !gatewayApi.apiKey) {
+                return alert("পেমেন্ট গেটওয়ে সেটআপ করা নেই! অ্যাডমিন প্যানেল চেক করুন।");
+            }
+
+            const user = auth.currentUser;
+            const txnID = "TXN" + Date.now(); // ইউনিক আইডি
+
+            // গেটওয়ে ইউআরএল তৈরি (অ্যাডমিন প্যানেলের ডাটা অনুযায়ী)
+            const finalUrl = `${gatewayApi.url}?api=${gatewayApi.apiKey}&amount=${amount}&uid=${user.uid}&order_id=${txnID}&email=${user.email}`;
+
+            alert("পেমেন্ট গেটওয়েতে নিয়ে যাওয়া হচ্ছে...");
+            window.location.href = finalUrl;
+        }
+    </script>
+</body>
+</html>
